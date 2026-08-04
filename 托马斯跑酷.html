@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>康式火车运营中</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Comic Sans MS", "STKaiti", sans-serif;
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+    background: #87CEEB;
+  }
+
+  /* ========== 启动页 ========== */
+  #startPage {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #87CEEB 0%, #b8e4f0 50%, #90d890 80%, #6ab04c 100%);
+  }
+  /* 白云 */
+  .cloud {
+    position: absolute; background: #fff; border-radius: 50%; opacity: 0.9;
+    animation: floatCloud linear infinite;
+    z-index: 0;
+  }
+  .cloud::before, .cloud::after {
+    content: ''; position: absolute; background: #fff; border-radius: 50%;
+  }
+  .cloud:nth-child(1) { width:80px; height:40px; top:8%; left:10%; animation-duration:18s; }
+  .cloud:nth-child(1)::before { width:50px; height:50px; top:-20px; left:10px; }
+  .cloud:nth-child(1)::after  { width:60px; height:40px; top:-8px; left:30px; }
+  .cloud:nth-child(2) { width:100px; height:45px; top:15%; right:15%; animation-duration:22s; }
+  .cloud:nth-child(2)::before { width:55px; height:55px; top:-22px; left:15px; }
+  .cloud:nth-child(2)::after  { width:65px; height:42px; top:-10px; left:40px; }
+  .cloud:nth-child(3) { width:70px; height:35px; top:25%; left:60%; animation-duration:20s; }
+  .cloud:nth-child(3)::before { width:45px; height:45px; top:-18px; left:8px; }
+  .cloud:nth-child(3)::after  { width:55px; height:35px; top:-6px; left:28px; }
+  @keyframes floatCloud {
+    0%   { transform: translateX(-120px); }
+    100% { transform: translateX(calc(100vw + 120px)); }
+  }
+  /* 草地装饰 */
+  .grass-area {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 30%;
+    background: linear-gradient(180deg, #7bc44e 0%, #5a9e32 50%, #4a8a28 100%);
+    border-radius: 120% 140% 0 0 / 50px 40px 0 0;
+    z-index: 0;
+  }
+  /* 小花 */
+  .flower {
+    position: absolute; z-index: 1; bottom: 25%;
+    font-size: 28px; animation: sway 2s ease-in-out infinite;
+  }
+  .flower:nth-child(6)  { left:8%;  animation-delay:0s; }
+  .flower:nth-child(7)  { left:20%; animation-delay:0.5s; font-size:22px; }
+  .flower:nth-child(8)  { left:35%; animation-delay:1s; font-size:26px; }
+  .flower:nth-child(9)  { left:55%; animation-delay:0.3s; }
+  .flower:nth-child(10) { left:70%; animation-delay:0.8s; font-size:20px; }
+  .flower:nth-child(11) { left:85%; animation-delay:1.3s; font-size:24px; }
+  @keyframes sway {
+    0%,100% { transform: rotate(-3deg); }
+    50%     { transform: rotate(3deg); }
+  }
+
+  /* 标题 */
+  #startPage h1 {
+    z-index: 2; font-size: clamp(1.6em, 7vw, 3em); color: #d4380d;
+    text-shadow: 3px 3px 0 #ffd700, 5px 5px 0 rgba(0,0,0,0.15);
+    letter-spacing: 4px; margin-bottom: 10px; animation: bounceTitle 1s ease-in-out infinite;
+  }
+  @keyframes bounceTitle {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-10px); }
+  }
+
+  /* 托马斯展示画布 */
+  #trainShow {
+    z-index: 2; width: min(340px, 88vw); height: auto; aspect-ratio: 340/200;
+    animation: chug 0.8s ease-in-out infinite;
+    filter: drop-shadow(4px 6px 8px rgba(0,0,0,0.3));
+  }
+  @keyframes chug {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-6px); }
+  }
+
+  /* 按钮 */
+  #startBtn {
+    z-index: 2; margin-top: 16px;
+    font-size: 1.4em; padding: 14px 50px; border: none; border-radius: 50px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: #fff; font-weight: bold; cursor: pointer;
+    letter-spacing: 3px;
+    box-shadow: 0 6px 20px rgba(238,90,36,0.5);
+    animation: pulse 1.5s ease-in-out infinite;
+    transition: transform 0.15s;
+  }
+  #startBtn:hover { transform: scale(1.08); }
+  #startBtn:active { transform: scale(0.95); }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 6px 20px rgba(238,90,36,0.5); }
+    50%     { box-shadow: 0 6px 35px rgba(238,90,36,0.8); }
+  }
+
+  /* 页脚文字 */
+  .footer-text {
+    z-index: 2; position: absolute; bottom: 8%; color: #fff;
+    font-size: 0.85em; opacity: 0.8; letter-spacing: 2px;
+  }
+
+  /* ========== 游戏页 ========== */
+  #gamePage {
+    position: fixed; inset: 0; display: none; z-index: 20;
+  }
+  #gameCanvas { display: block; background: #87CEEB; }
+
+  /* 游戏结束弹窗 */
+  #gameOverlay {
+    position: fixed; inset: 0; z-index: 30; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.55);
+  }
+  #gameOverlay.show { display: flex; }
+  .overlay-box {
+    background: #fff; border-radius: 24px; padding: 30px 40px;
+    text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+  .overlay-box h2 { font-size: 1.8em; color: #d4380d; margin-bottom: 8px; }
+  .overlay-box .score { font-size: 2em; color: #333; margin: 10px 0; }
+  .overlay-box button {
+    font-size: 1.1em; padding: 10px 36px; border: none; border-radius: 30px;
+    background: #ee5a24; color: #fff; font-weight: bold; cursor: pointer;
+    margin: 6px; transition: transform 0.15s;
+  }
+  .overlay-box button:hover { transform: scale(1.06); }
+  .overlay-box .btn-home { background: #4a90d9; }
+
+  /* 分数显示 */
+  #scoreDisplay {
+    position: fixed; top: 14px; right: 20px; z-index: 25; display: none;
+    font-size: 1.4em; color: #fff; font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+    background: rgba(0,0,0,0.3); padding: 6px 18px; border-radius: 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== 启动页 ====== -->
+<div id="startPage">
+  <div class="cloud"></div><div class="cloud"></div><div class="cloud"></div>
+  <div class="grass-area"></div>
+  <span class="flower">🌼</span><span class="flower">🌸</span><span class="flower">🌻</span>
+  <span class="flower">🌷</span><span class="flower">🌼</span><span class="flower">🌸</span>
+  <h1>康式火车运营中</h1>
+  <canvas id="trainShow" width="340" height="200"></canvas>
+  <button id="startBtn" onclick="startGame()">🚂 出发！</button>
+  <div class="footer-text">按空格键跳跃 · 躲避障碍物</div>
+</div>
+
+<!-- ====== 游戏页 ====== -->
+<div id="gamePage">
+  <canvas id="gameCanvas"></canvas>
+</div>
+<div id="scoreDisplay">🚂 0</div>
+
+<!-- 结束弹窗 -->
+<div id="gameOverlay">
+  <div class="overlay-box">
+    <h2>💥 撞到啦！</h2>
+    <p style="color:#666;">托马仕需要修理一下…</p>
+    <div class="score" id="finalScore">0</div>
+    <button class="btn-home" onclick="goHome()">🏠 回首页</button>
+    <button onclick="restartGame()">🔄 再来一局</button>
+  </div>
+</div>
+
+<script>
+// =============================================================
+//  托马斯火车绘制函数（Canvas，x,y 为车身中心，scale 缩放）
+// =============================================================
+function drawThomas(ctx, x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(-1, 1);  // 水平翻转 → 火车朝右
+  const s = scale;
+
+  // --- 车身主体 ---
+  const bodyW = 120 * s, bodyH = 55 * s;
+  const bodyX = -bodyW/2, bodyY = -bodyH/2;
+
+  // 锅炉筒（前部圆形）
+  const boilerR = 28 * s;
+  const boilerCX = bodyX + 18 * s;
+  const boilerCY = bodyY + bodyH * 0.55;
+
+  // 驾驶室（后方高出的部分）
+  const cabW = 34 * s, cabH = 70 * s;
+  const cabX = bodyX + bodyW - cabW - 4 * s;
+  const cabY = bodyY - cabH + bodyH;
+
+  // --- 底盘 ---
+  const chassisY = bodyY + bodyH - 6 * s;
+  ctx.fillStyle = '#333';
+  ctx.fillRect(bodyX - 4*s, chassisY, bodyW + 8*s, 8*s);
+
+  // --- 驾驶室 ---
+  ctx.fillStyle = '#2b6cb0';
+  ctx.fillRect(cabX, cabY, cabW, cabH);
+  ctx.strokeStyle = '#1a4f80';
+  ctx.lineWidth = 1.5 * s;
+  ctx.strokeRect(cabX, cabY, cabW, cabH);
+  // 驾驶室窗户
+  ctx.fillStyle = '#a8d8ea';
+  ctx.fillRect(cabX + 5*s, cabY + 8*s, cabW - 10*s, 22*s);
+  ctx.strokeStyle = '#1a4f80';
+  ctx.lineWidth = 1*s;
+  ctx.strokeRect(cabX + 5*s, cabY + 8*s, cabW - 10*s, 22*s);
+  // 驾驶室顶部
+  ctx.fillStyle = '#1e5799';
+  ctx.fillRect(cabX - 3*s, cabY - 4*s, cabW + 6*s, 6*s);
+
+  // --- 锅炉筒（蓝色圆形前部）---
+  ctx.fillStyle = '#3b82f6';
+  ctx.beginPath();
+  ctx.arc(boilerCX, boilerCY, boilerR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#1a4f80';
+  ctx.lineWidth = 1.5 * s;
+  ctx.stroke();
+
+  // 锅炉延伸（连接锅炉到驾驶室）
+  ctx.fillStyle = '#3b82f6';
+  ctx.fillRect(boilerCX + boilerR - 6*s, bodyY, cabX - boilerCX - boilerR + 6*s, bodyH - 8*s);
+
+  // --- 烟囱 ---
+  const chimneyX = boilerCX + 8 * s;
+  const chimneyY = boilerCY - boilerR - 2 * s;
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(chimneyX - 6*s, chimneyY - 16*s, 12*s, 20*s);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(chimneyX - 8*s, chimneyY - 18*s, 16*s, 5*s); // 烟囱帽
+
+  // --- 蒸汽 puff ---
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + i*0.15})`;
+    ctx.beginPath();
+    ctx.arc(chimneyX - 4*s + i*8*s, chimneyY - 22*s - i*10*s, 7*s + i*4*s, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // 数字牌
+  const plateX = boilerCX + boilerR + 2*s;
+  const plateY = bodyY + 5*s;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(plateX, plateY, 22*s, 18*s);
+  ctx.strokeStyle = '#e8b730';
+  ctx.lineWidth = 2*s;
+  ctx.strokeRect(plateX, plateY, 22*s, 18*s);
+  ctx.fillStyle = '#e8b730';
+  ctx.font = `bold ${13*s}px "Arial"`;
+  ctx.textAlign = 'center';
+  // 文字需要翻转回来，否则数字会被镜像
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.fillText('1', -(plateX + 11*s), plateY + 14*s);
+  ctx.restore();
+
+  // --- 火车脸（锅炉前部）---
+  const faceCX = boilerCX - boilerR + 6*s;
+  const faceCY = boilerCY;
+  // 脸部底板
+  ctx.fillStyle = '#d0d0d0';
+  ctx.beginPath();
+  ctx.arc(faceCX, faceCY, boilerR - 4*s, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 1*s;
+  ctx.stroke();
+
+  // 眼睛
+  for (let ex = -1; ex <= 1; ex += 2) {
+    const eyeX = faceCX + ex * 7*s;
+    const eyeY = faceCY - 4*s;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, 5*s, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(eyeX + 1*s, eyeY, 2.5*s, 0, Math.PI*2);
+    ctx.fill();
+    // 高光
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(eyeX - 0.5*s, eyeY - 1*s, 1*s, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // 眉毛（小弧线）
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.2*s;
+  for (let ex = -1; ex <= 1; ex += 2) {
+    ctx.beginPath();
+    ctx.arc(faceCX + ex*7*s, faceCY - 9*s, 4*s, Math.PI*0.35, Math.PI*0.65);
+    ctx.stroke();
+  }
+
+  // 微笑
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.5*s;
+  ctx.beginPath();
+  ctx.arc(faceCX, faceCY + 2*s, 7*s, Math.PI*0.1, Math.PI*0.9);
+  ctx.stroke();
+
+  // 鼻子
+  ctx.fillStyle = '#e8a030';
+  ctx.beginPath();
+  ctx.arc(faceCX - boilerR + 6*s, faceCY, 3.5*s, 0, Math.PI*2);
+  ctx.fill();
+
+  // --- 轮子 ---
+  const wheelY = chassisY + 8*s;
+  const wheelPositions = [
+    bodyX + 18*s,           // 前轮（小）
+    bodyX + bodyW * 0.45,   // 中轮（大）
+    cabX + cabW * 0.5       // 后轮（大）
+  ];
+  const wheelRadii = [9*s, 13*s, 13*s];
+
+  for (let i = 0; i < 3; i++) {
+    const wx = wheelPositions[i], wr = wheelRadii[i];
+    // 轮子外圈
+    ctx.fillStyle = '#cc2222';
+    ctx.beginPath();
+    ctx.arc(wx, wheelY, wr, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#881111';
+    ctx.lineWidth = 1.5*s;
+    ctx.stroke();
+    // 轮毂
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath();
+    ctx.arc(wx, wheelY, wr * 0.55, 0, Math.PI*2);
+    ctx.fill();
+    // 轴心
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(wx, wheelY, wr * 0.2, 0, Math.PI*2);
+    ctx.fill();
+    // 轮辐
+    ctx.strokeStyle = '#ff6666';
+    ctx.lineWidth = 1.2*s;
+    for (let a = 0; a < Math.PI*2; a += Math.PI/3) {
+      ctx.beginPath();
+      ctx.moveTo(wx, wheelY);
+      ctx.lineTo(wx + Math.cos(a)*wr*0.9, wheelY + Math.sin(a)*wr*0.9);
+      ctx.stroke();
+    }
+  }
+
+  // --- 连接杆 ---
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 2*s;
+  ctx.beginPath();
+  ctx.moveTo(wheelPositions[0], wheelY);
+  ctx.lineTo(wheelPositions[2], wheelY);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ============ 启动页：画托马斯展示 ============
+const trainCanvas = document.getElementById('trainShow');
+const trainCtx = trainCanvas.getContext('2d');
+drawThomas(trainCtx, 170, 115, 0.85);
+
+// 给它一个小动画（眨眼）：每秒更新
+let blinkTimer = 0;
+function animateTrainShow() {
+  trainCtx.clearRect(0, 0, 340, 200);
+  drawThomas(trainCtx, 170, 115, 0.85);
+  // 偶尔眨个眼（脸已翻转朝右，眼睛在右侧）
+  blinkTimer++;
+  if (blinkTimer % 180 < 6) {
+    trainCtx.fillStyle = '#d0d0d0';
+    // 翻转后眼睛在约 x=144 和 x=158（镜像后的位置）
+    trainCtx.beginPath();
+    trainCtx.arc(144, 115 - 4*0.85 - 8, 5.2*0.85, 0, Math.PI*2);
+    trainCtx.fill();
+    trainCtx.beginPath();
+    trainCtx.arc(158, 115 - 4*0.85 - 8, 5.2*0.85, 0, Math.PI*2);
+    trainCtx.fill();
+  }
+  requestAnimationFrame(animateTrainShow);
+}
+animateTrainShow();
+
+// ============ 游戏 ============
+const gameCanvas = document.getElementById('gameCanvas');
+const gCtx = gameCanvas.getContext('2d');
+const gamePage = document.getElementById('gamePage');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const overlay = document.getElementById('gameOverlay');
+const finalScoreEl = document.getElementById('finalScore');
+
+let gameRunning = false;
+let gameOver = false;
+let score = 0;
+let frameCount = 0;
+
+// 托马斯状态
+let trainX = 0;         // 由 resizeCanvas 动态计算
+let trainY = 0;        // 垂直位置（由跳跃控制）
+let trainVY = 0;
+let onGround = true;
+const GROUND_Y = 0;    // 基准地面（画布底部）
+const JUMP_VEL = -14;
+const GRAVITY = 0.7;
+
+// 障碍物
+let obstacles = [];
+let OBSTACLE_SPEED = 5;
+let obstacleTimer = 0;
+const OBSTACLE_INTERVAL_MIN = 50;
+const OBSTACLE_INTERVAL_MAX = 100;
+
+// 画布尺寸 & 布局变量
+let W, H, GROUND, TRACK_Y, GRASS_Y, HILL_Y, TRAIN_SCALE;
+
+function resizeCanvas() {
+  W = gameCanvas.width  = window.innerWidth;
+  H = gameCanvas.height = window.innerHeight;
+  // 按比例计算关键 Y 坐标
+  GROUND   = H * 0.88;   // 铁轨 / 地面
+  TRACK_Y  = GROUND;
+  GRASS_Y  = H * 0.84;   // 草地起始
+  HILL_Y   = H * 0.76;   // 远山
+  trainY   = GROUND;     // 火车轮子对齐地面
+  trainX   = W * 0.15;   // 火车在左侧 15% 处
+  OBSTACLE_SPEED = 5 * (W / 800);  // 速度随宽度缩放
+  TRAIN_SCALE = 0.42 * Math.min(W/800, H/500);  // 火车大小自适应
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); });
+
+// ============ 绘制游戏场景 ============
+function drawGameScene() {
+  gCtx.clearRect(0, 0, W, H);
+
+  // 天空渐变
+  const skyGrad = gCtx.createLinearGradient(0, 0, 0, H);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(0.7, '#c8e8f0');
+  skyGrad.addColorStop(1, '#b8d890');
+  gCtx.fillStyle = skyGrad;
+  gCtx.fillRect(0, 0, W, H);
+
+  // 远山
+  gCtx.fillStyle = '#8bbd6a';
+  gCtx.beginPath();
+  gCtx.moveTo(0, HILL_Y + 16);
+  for (let x = 0; x <= W; x += 80) {
+    gCtx.lineTo(x + 40, HILL_Y - Math.sin(x*0.02)*(30 + 15));
+  }
+  gCtx.lineTo(W, H);
+  gCtx.lineTo(0, H);
+  gCtx.fill();
+
+  // 草地
+  gCtx.fillStyle = '#7bc44e';
+  gCtx.fillRect(0, GRASS_Y, W, H - GRASS_Y);
+  gCtx.fillStyle = '#6ab04c';
+  gCtx.fillRect(0, GRASS_Y + 2, W, H - GRASS_Y - 2);
+
+  // 铁轨
+  for (let i = -20; i < W + 40; i += 50) {
+    const tx = i + (frameCount * OBSTACLE_SPEED) % 50;
+    gCtx.fillStyle = '#8b7355';
+    gCtx.fillRect(tx, TRACK_Y, 30, 5);
+    gCtx.fillStyle = '#666';
+    gCtx.fillRect(tx - 3, TRACK_Y - 1, 36, 7);
+  }
+
+  // 铁轨线
+  gCtx.strokeStyle = '#aaa';
+  gCtx.lineWidth = 1;
+  gCtx.beginPath();
+  gCtx.moveTo(0, TRACK_Y + 5);
+  gCtx.lineTo(W, TRACK_Y + 5);
+  gCtx.stroke();
+
+  // 障碍物
+  for (let ob of obstacles) {
+    const ox = ob.x, oy = TRACK_Y - ob.h;
+    if (ob.type === 'rock') {
+      // 石头
+      gCtx.fillStyle = '#777';
+      gCtx.beginPath();
+      gCtx.moveTo(ox, oy + ob.h);
+      gCtx.lineTo(ox - 8, oy + ob.h*0.3);
+      gCtx.lineTo(ox + ob.w*0.3, oy);
+      gCtx.lineTo(ox + ob.w*0.7, oy - 2);
+      gCtx.lineTo(ox + ob.w, oy + ob.h*0.2);
+      gCtx.lineTo(ox + ob.w + 6, oy + ob.h);
+      gCtx.closePath();
+      gCtx.fill();
+      gCtx.strokeStyle = '#555';
+      gCtx.lineWidth = 1.5;
+      gCtx.stroke();
+    } else if (ob.type === 'crate') {
+      // 木箱
+      gCtx.fillStyle = '#c8956c';
+      gCtx.fillRect(ox, oy, ob.w, ob.h);
+      gCtx.strokeStyle = '#8b5a3c';
+      gCtx.lineWidth = 2;
+      gCtx.strokeRect(ox, oy, ob.w, ob.h);
+      gCtx.beginPath();
+      gCtx.moveTo(ox, oy);
+      gCtx.lineTo(ox + ob.w, oy + ob.h);
+      gCtx.moveTo(ox + ob.w, oy);
+      gCtx.lineTo(ox, oy + ob.h);
+      gCtx.stroke();
+    } else if (ob.type === 'sign') {
+      // 路牌
+      gCtx.fillStyle = '#8b6914';
+      gCtx.fillRect(ox + ob.w/2 - 2, oy + ob.h/2, 4, ob.h/2);
+      gCtx.fillStyle = '#f5c842';
+      gCtx.fillRect(ox, oy, ob.w, ob.h/2);
+      gCtx.strokeStyle = '#333';
+      gCtx.lineWidth = 1;
+      gCtx.strokeRect(ox, oy, ob.w, ob.h/2);
+      gCtx.fillStyle = '#333';
+      gCtx.font = 'bold 10px Arial';
+      gCtx.textAlign = 'center';
+      gCtx.fillText('STOP', ox + ob.w/2, oy + ob.h/3);
+    }
+  }
+
+  // 托马斯小火车
+  drawThomas(gCtx, trainX, trainY - 12, TRAIN_SCALE);
+}
+
+// ============ 碰撞检测 ============
+function checkCollision() {
+  const trainRect = {
+    x: trainX - 65 * TRAIN_SCALE,
+    y: trainY - 12 - 28 * TRAIN_SCALE - 5,
+    w: 140 * TRAIN_SCALE,
+    h: 50 * TRAIN_SCALE + 10,
+  };
+  for (let ob of obstacles) {
+    const obRect = {
+      x: ob.x, y: TRACK_Y - ob.h,
+      w: ob.w, h: ob.h,
+    };
+    // 矩形重叠
+    if (trainRect.x < obRect.x + obRect.w &&
+        trainRect.x + trainRect.w > obRect.x &&
+        trainRect.y < obRect.y + obRect.h &&
+        trainRect.y + trainRect.h > obRect.y) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ============ 游戏循环 ============
+function gameLoop() {
+  if (!gameRunning) return;
+  frameCount++;
+
+  // 跳跃物理
+  if (!onGround) {
+    trainVY += GRAVITY;
+    trainY += trainVY;
+    const groundY = GROUND;
+    if (trainY >= groundY) {
+      trainY = groundY;
+      trainVY = 0;
+      onGround = true;
+    }
+  }
+
+  // 生成障碍物
+  obstacleTimer++;
+  if (obstacleTimer > OBSTACLE_INTERVAL_MIN + Math.random() * (OBSTACLE_INTERVAL_MAX - OBSTACLE_INTERVAL_MIN)) {
+    obstacleTimer = 0;
+    const types = ['rock', 'rock', 'crate', 'crate', 'sign'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    let w = 34, h = 38;
+    if (type === 'crate') { w = 30; h = 34; }
+    else if (type === 'sign') { w = 36; h = 50; }
+    obstacles.push({ type, x: W + 20, w, h });
+  }
+
+  // 移动障碍物 & 移除越界的
+  for (let ob of obstacles) {
+    ob.x -= OBSTACLE_SPEED + Math.floor(frameCount / 300);
+  }
+  obstacles = obstacles.filter(ob => ob.x > -80);
+
+  // 碰撞检测
+  if (checkCollision()) {
+    endGame();
+    return;
+  }
+
+  // 分数
+  score += 1;
+  scoreDisplay.textContent = '🚂 ' + Math.floor(score / 10);
+
+  drawGameScene();
+  requestAnimationFrame(gameLoop);
+}
+
+// ============ 游戏控制 ============
+function startGame() {
+  document.getElementById('startPage').style.display = 'none';
+  gamePage.style.display = 'block';
+  scoreDisplay.style.display = 'block';
+  overlay.classList.remove('show');
+
+  resizeCanvas();
+  trainVY = 0;
+  onGround = true;
+  obstacles = [];
+  obstacleTimer = 0;
+  score = 0;
+  frameCount = 0;
+  gameOver = false;
+  gameRunning = true;
+
+  gameLoop();
+}
+
+function endGame() {
+  gameRunning = false;
+  gameOver = true;
+  finalScoreEl.textContent = '得分：' + Math.floor(score / 10);
+  overlay.classList.add('show');
+  scoreDisplay.style.display = 'none';
+}
+
+function restartGame() {
+  overlay.classList.remove('show');
+  resizeCanvas();
+  trainVY = 0;
+  onGround = true;
+  obstacles = [];
+  obstacleTimer = 0;
+  score = 0;
+  frameCount = 0;
+  gameOver = false;
+  gameRunning = true;
+  scoreDisplay.style.display = 'block';
+  gameLoop();
+}
+
+function goHome() {
+  gameRunning = false;
+  gameOver = false;
+  gamePage.style.display = 'none';
+  overlay.classList.remove('show');
+  scoreDisplay.style.display = 'none';
+  document.getElementById('startPage').style.display = 'flex';
+}
+
+// 空格跳跃
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gameRunning && onGround) {
+      trainVY = JUMP_VEL;
+      onGround = false;
+    }
+  }
+});
+
+// 点击 / 触摸跳跃
+window.addEventListener('click', (e) => {
+  if (e.target.tagName === 'BUTTON') return;  // 不拦截按钮点击
+  if (gameRunning && onGround) {
+    trainVY = JUMP_VEL;
+    onGround = false;
+  }
+});
+window.addEventListener('touchstart', (e) => {
+  if (gameRunning && onGround) {
+    trainVY = JUMP_VEL;
+    onGround = false;
+  }
+});
+</script>
+</body>
+</html>
